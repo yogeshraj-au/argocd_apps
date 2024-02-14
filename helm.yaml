@@ -1,0 +1,46 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: echoserver-app-helm
+  namespace: argo
+  labels:
+    argoapp: echoserver
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://ealenn.github.io/charts
+    targetRevision: 0.5.0
+    chart: echo-server
+    helm:
+      version: v3
+      releaseName: echoserver
+      passCredentials: false
+      values: |
+        ingress:
+          enabled: true
+          ingressClassName: "egress-nginx"
+          annotations:
+            cert-manager.io/cluster-issuer: letsencrypt-prod
+          hosts:
+            - host: echoserver-helm.coffeemart.xyz
+              paths:
+                - /
+          tls:
+            - secretName: ehcoserver-helm-tls
+              hosts:
+                - echoserver-helm.coffeemart.xyz
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: echoserver-helm
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=true
+      - pruneLast=true
